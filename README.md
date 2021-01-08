@@ -3,7 +3,12 @@ A python3 tool that combines a few different testing tools to speed up the recon
 The tool currently includes: Nmap, Nikto, and Dirsearch.  
 The output is all put in 1 report for ease of use.  
 
-## Installing
+## Requirements
+Python3.8  
+Nmap  
+Nikto  
+
+### Installing
 Make sure Nmap and Nikto are installed.  
 ```
 sudo apt-get install nmap
