@@ -102,7 +102,6 @@ def dirsearchScan():
 		break
 	
 def dirsearchScanAll(str):
-		print(f'Found web ports on {str}')
 		print(f'Running dirsearch on {str}')
 		subprocess.call("python3 dirsearch/dirsearch.py -u " + str + " -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
 		with open("output/dirsearchout.txt", "rb") as f:
