@@ -89,10 +89,10 @@ def dirsearchScan():
 		try:
 			selection = str(input("> "))
 			if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", selection):
-				subprocess.call("python3 dirsearch/dirsearch.py -u " + selection + " -E --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
+				subprocess.call("python3 dirsearch/dirsearch.py -u " + selection + " -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
 				break
 			elif re.match(r"\w*\.\w{1,11}$", selection):
-				subprocess.call("python3 dirsearch/dirsearch.py -u " + selection + " -E --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
+				subprocess.call("python3 dirsearch/dirsearch.py -u " + selection + " -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
 				break
 			else:
 				raise ValueError
@@ -103,7 +103,7 @@ def dirsearchScan():
 	
 def dirsearchScanAll(str):
 		print(f'Running dirsearch on {str}')
-		subprocess.call("python3 dirsearch/dirsearch.py -u " + str + " -E --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
+		subprocess.call("python3 dirsearch/dirsearch.py -u " + str + " -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
 		with open("output/dirsearchout.txt", "rb") as f:
 			filecontent = f.read()
 			return filecontent.decode('utf-8')
