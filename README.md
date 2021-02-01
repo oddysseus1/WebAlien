@@ -4,7 +4,7 @@ The tool currently includes: Nmap, Nikto, and Dirsearch.
 The output is all put in 1 report for ease of use.  
 
 ## Requirements
-Python3.8  
+Python 3.8  
 Nmap  
 Nikto  
 Dirsearch  
