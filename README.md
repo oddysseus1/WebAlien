@@ -7,6 +7,7 @@ The output is all put in 1 report for ease of use.
 Python3.8  
 Nmap  
 Nikto  
+Dirsearch  
 
 ### Installing
 Make sure Nmap and Nikto are installed.  
