@@ -50,7 +50,7 @@ def mainMenu():
 				niktoScan()
 				break
 			elif selection == 4:
-				allScan()
+				scanAllMenu()
 				break
 			else:
 				raise ValueError
@@ -101,9 +101,10 @@ def dirsearchScan():
 			continue
 		break
 	
-def dirsearchScanAll(str):
-		print(f'Running dirsearch on {str}')
-		subprocess.call("python3 dirsearch/dirsearch.py -u " + str + " -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null", shell=True)
+def dirsearchScanAll(str1, str2):
+		print(f'Running dirsearch on {str1}:{str2}')
+		subprocess.call(f'python3 dirsearch/dirsearch.py -u {str1}:{str2} -e php,aspx,jsp,html,js --plain-text-report=output/dirsearchout.txt > /dev/null', shell=True)
+		#subprocess.call(f'echo {str1}:{str2} > /dev/null', shell=True)
 		with open("output/dirsearchout.txt", "rb") as f:
 			filecontent = f.read()
 			return filecontent.decode('utf-8')
@@ -130,10 +131,36 @@ def niktoScan():
 			continue
 		break
 	
-def niktoScanAll(str):
-	print(f'Running nikto on {str}')
-	nikto = subprocess.run("nikto -host " + str, shell=True, capture_output=True)
+	
+def niktoScanAll(str1, str2):
+	print(f'Running nikto on {str1}:{str2}')
+	nikto = subprocess.run(f'nikto -host {str1}:{str2} -maxtime 3m', shell=True, capture_output=True)
 	return nikto.stdout.decode('utf-8')
+
+def scanAllMenu():
+	print("\n########################################################")
+	print("#  Options:                                            #")
+	print("#  1: Enter IP or CIDR Range                           #")
+	print("#  2: Enter a File with IPs                            #")
+	print("#                                                      #")
+	print("########################################################")
+	print("\nPlease make a selection (1-2)")
+	while True:
+		try:
+			selection = int(input("> "))
+			if selection == 1:
+				allScan()
+				break
+			elif selection == 2:
+				fileScan()
+				break
+			else:
+				raise ValueError
+		except ValueError:
+			print("Invalid selection")
+			continue
+		break
+	
 
 def allScan():
 	print("\n\n########################################################")
@@ -167,11 +194,26 @@ def allScan():
 			continue
 		break
 	
+def fileScan():
+	print("\n\n########################################################")
+	print("Enter a file name or path:")
+	while True:
+		try:
+			selection = str(input("> "))
+			asyncio.run(allScanAsync(selection))
+		except OSError:
+			print('File not found.')
+			continue
+		break
+		
+	
 async def allScanAsync(str):
 	queue = asyncio.Queue()
 	report_queue = asyncio.Queue()
 	await asyncio.gather(
-		execute(['bash', '-c', 'nmap -F ' + str], parse_nmap, queue),
+		#Testing String
+		execute(['bash', '-c', 'nmap -F -iL ' + str], parse_nmap, nmap_callback, queue),
+		#execute(['bash', '-c', 'nmap -PN -n -sV --max-retries 1 --min-rate 5000 -p1-65535 -oN output -iL ' + str], parse_nmap, nmap_callback, queue),
 		consume(queue, report_queue),
 		report(report_queue),
 	)
@@ -213,32 +255,36 @@ async def parse_nmap(stream):
 			started = True
 		if started:
 			if line == b'\n':
-				yield NMap.from_block(block.decode('utf-8'))
-				started = False
+				yield NMap.from_block(block.decode('utf-8').strip())
+				block, started = b'', False
 			block += line
+			
+async def nmap_callback(process, queue):
+	async for block in parse_nmap(process.stdout):
+		for port in block.ports:
+			if port.status == 'open' and 'http' in port.service:
+				await queue.put((block, port))
+				break
+			
+	await queue.put(None)
 
-async def _stream_subprocess(cmd, parser, queue):
+async def _stream_subprocess(cmd, parser, callback, queue):
 	process = await asyncio.create_subprocess_exec(
 		*cmd,
 		stdout=asyncio.subprocess.PIPE,
 		# not used right now, but also keeps stderr from printing
 		stderr=asyncio.subprocess.PIPE,
 	)
-	async for block in parser(process.stdout):
-		for port in block.ports:
-			if 'http' in port.service:
-				await queue.put(block)
-				
-	await queue.put(None)
-	
+	await nmap_callback(process, queue)
 	return await process.wait()
 
 async def consume(queue, report_queue):
 	while item := await queue.get():
+		block, port = item
 		packaged_data = {
-			'nmap': item,
-			'dirsearch': dirsearchScanAll(item.ip),
-			'nikto': niktoScanAll(item.ip),
+			'nmap': block,
+			'dirsearch': dirsearchScanAll(block.ip, port.number),
+			'nikto': niktoScanAll(block.ip, port.number),
 		}
 		await report_queue.put(packaged_data)
 		
@@ -253,8 +299,8 @@ async def report(queue):
 				print(output, file=f)
 				print(file=f)
 			
-async def execute(cmd, parser, queue):
-	await _stream_subprocess(cmd, parser, queue)
+async def execute(cmd, parser, callback, queue):
+	await _stream_subprocess(cmd, parser, callback, queue)
 
 if __name__ == '__main__':
 	printLogo()
