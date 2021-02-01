@@ -211,9 +211,7 @@ async def allScanAsync(str):
 	queue = asyncio.Queue()
 	report_queue = asyncio.Queue()
 	await asyncio.gather(
-		#Testing String
-		execute(['bash', '-c', 'nmap -F -iL ' + str], parse_nmap, nmap_callback, queue),
-		#execute(['bash', '-c', 'nmap -PN -n -sV --max-retries 1 --min-rate 5000 -p1-65535 -oN output -iL ' + str], parse_nmap, nmap_callback, queue),
+		execute(['bash', '-c', 'nmap -PN -n -sV --max-retries 1 --min-rate 5000 -p1-65535 -iL ' + str], parse_nmap, nmap_callback, queue),
 		consume(queue, report_queue),
 		report(report_queue),
 	)
